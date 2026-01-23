@@ -1,0 +1,83 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: emailscheduler
+      MYSQL_USER: scheduler
+      MYSQL_PASSWORD: scheduler123
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  api-service:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile.api
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: emailscheduler
+      DB_USER: scheduler
+      DB_PASSWORD: scheduler123
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TZ: Asia/Kolkata
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  worker-service:
+    build:
+      context: ./worker-service
+      dockerfile: Dockerfile.worker
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: emailscheduler
+      DB_USER: scheduler
+      DB_PASSWORD: scheduler123
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SPRING_MAIL_USERNAME: malipatils6362@gmail.com
+      SPRING_MAIL_PASSWORD: "yiyn twxq agav nvuy"
+      TZ: Asia/Kolkata
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+
+volumes:
+  mysql_data: {}
