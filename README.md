@@ -1,4 +1,5 @@
 ##Email Scheduler System
+```
 Client
   │
   ▼
@@ -15,7 +16,7 @@ Worker Service (Spring Boot)
   └─ Redis (Optional caching / idempotency)
 ```
 
-
+```
 ## Tech Stack
 
 | Layer            | Technology                |
@@ -30,7 +31,7 @@ Worker Service (Spring Boot)
 
 ---
 
-
+```
 Overview
 
 Email Scheduler System is a distributed backend system that allows users to schedule emails for a future time and ensures that the emails are sent automatically at the scheduled time.
@@ -62,7 +63,7 @@ Clear separation of responsibilities.
 Designed for horizontal scaling.
 
 Services
-API Service
+## API Service
 
 Responsibilities:
 
@@ -118,7 +119,7 @@ Persists job in MySQL
 
 Publishes job ID to RabbitMQ
 
-Worker Service:
+## Worker Service:
 
 Consumes job
 
@@ -164,8 +165,8 @@ Asynchronous message-driven execution
 Idempotent worker processing
 
 Dockerized for deployment
-
-Future Enhancements
+```
+## Future Enhancements
 
 Dead Letter Queue (DLQ)
 
