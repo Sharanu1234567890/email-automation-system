@@ -1,21 +1,4 @@
-# Email Scheduler – Distributed Worker System
-
-## Overview(By Reading only you will master the project)
-
-This project is a **production-grade, distributed email scheduling system** built using **Spring Boot microservices**, **RabbitMQ**, **MySQL**, **Redis**, and **Docker**. It demonstrates how to design and implement an **asynchronous, fault-tolerant worker architecture** commonly used in real-world backend and platform engineering teams.
-
-The system decouples request handling from email delivery using a message broker, ensuring **scalability, reliability, and non-blocking API performance**.
-
-This repository contains two independently deployable services:
-
-* **API Service** – Accepts email scheduling requests and publishes jobs
-* **Worker Service** – Consumes jobs, sends emails via SMTP, handles retries, and updates state
-
----
-
-## High-Level Architecture
-
-```
+##Email Scheduler System
 Client
   │
   ▼
@@ -32,15 +15,6 @@ Worker Service (Spring Boot)
   └─ Redis (Optional caching / idempotency)
 ```
 
-### Key Design Principles
-
-* **Asynchronous processing** to avoid blocking API threads
-* **Loose coupling** between producer and consumer
-* **At-least-once delivery** with retry support
-* **Horizontal scalability** for worker services
-* **Failure isolation** (email failures do not impact API uptime)
-
----
 
 ## Tech Stack
 
@@ -56,113 +30,150 @@ Worker Service (Spring Boot)
 
 ---
 
-## Service Responsibilities
 
-### API Service
+Overview
 
-* Exposes REST endpoints to schedule emails
-* Validates and persists email metadata
-* Publishes email jobs to RabbitMQ
-* Remains stateless and fast under load
+Email Scheduler System is a distributed backend system that allows users to schedule emails for a future time and ensures that the emails are sent automatically at the scheduled time.
 
-### Worker Service
+The system is built using Spring Boot microservices, RabbitMQ for asynchronous processing, and MySQL for persistent storage.
 
-* Listens to RabbitMQ queues
-* Processes email jobs asynchronously
-* Sends emails using JavaMailSender
-* Implements retry logic for transient failures
-* Updates email status in MySQL (PENDING → SENT / FAILED)
+High-Level Architecture
+flowchart LR
+    Client[Client / Frontend]
+    API[API Service]
+    DB[(MySQL)]
+    MQ[RabbitMQ]
+    Worker[Worker Service]
+    SMTP[SMTP Server]
 
----
+    Client -->|REST API| API
+    API -->|Persist Job| DB
+    API -->|Publish Job ID| MQ
+    MQ -->|Consume Job| Worker
+    Worker -->|Fetch Job| DB
+    Worker -->|Send Email| SMTP
+    Worker -->|Update Status| DB
 
-## Message Flow
 
-1. Client sends request to API Service
-2. API Service validates request and saves metadata
-3. Email job is published to RabbitMQ
-4. Worker Service consumes the message
-5. Email is sent via SMTP
-6. Status is updated in MySQL
-7. Failures are retried based on configuration
+Diagram renders directly on GitHub.
 
----
+Clear separation of responsibilities.
 
-## Reliability & Failure Handling
+Designed for horizontal scaling.
 
-* **Retry mechanism** for SMTP/network failures
-* **Idempotent processing** to avoid duplicate sends
-* **Dead-letter ready design** (can be enabled easily)
-* **Health checks** for MySQL and RabbitMQ
-* **Stateless workers** allow safe restarts and scaling
+Services
+API Service
 
----
+Responsibilities:
 
-## Configuration & Secrets
+Accept email scheduling requests via REST API
 
-Sensitive credentials (DB, SMTP, RabbitMQ) are externalized via environment variables and injected at runtime. No secrets are hardcoded in the application.
+Validate payloads
 
-SMTP uses **Gmail App Passwords**, following best security practices.
+Persist jobs and recipients in MySQL
 
----
+Publish job ID to RabbitMQ
 
-## Running the System
+Does NOT:
 
-### Prerequisites
+Send emails
 
-* Docker & Docker Compose
-* Gmail account with App Password enabled
+Perform heavy processing
 
-### Start All Services
+Worker Service
 
-```bash
+Responsibilities:
+
+Consume scheduled jobs from RabbitMQ
+
+Send emails using SMTP
+
+Retry on failure (up to 3 times)
+
+Update job and recipient status in MySQL
+
+Data Model
+EmailJob
+Field	Description
+id	Job identifier
+userId	User who scheduled the job
+subject	Email subject
+body	Email body
+scheduledAt	Scheduled execution time
+status	PENDING / SENT / PARTIAL_FAILED
+EmailRecipient
+Field	Description
+id	Recipient identifier
+jobId	Parent job
+recipientEmail	Recipient email address
+status	PENDING / SENT / FAILED
+retryCount	Retry attempts
+Message Flow
+
+Client schedules an email via REST API.
+
+API Service:
+
+Persists job in MySQL
+
+Publishes job ID to RabbitMQ
+
+Worker Service:
+
+Consumes job
+
+Sends email at scheduled time
+
+Updates delivery status in MySQL
+
+Technology Stack
+Layer	Technology
+Language	Java 17
+Framework	Spring Boot 3.x
+Messaging	RabbitMQ
+Database	MySQL 8
+Cache	Redis
+Email	SMTP (Gmail App Password)
+Containerization	Docker, Docker Compose
+Running Locally
 docker compose up --build
-```
 
-### Access
+Exposed Services
+Service	URL
+API Service	http://localhost:8080
 
-* API Service: `http://localhost:8080`
-* RabbitMQ Management UI: `http://localhost:15672`
+RabbitMQ UI	http://localhost:15672
 
----
+MySQL	localhost:3307
+Reliability Features
 
-## Scalability Considerations
+Email jobs persisted before execution
 
-* Multiple **worker-service replicas** can consume from the same queue
-* API service can be scaled independently
-* RabbitMQ ensures load distribution across workers
-* Database writes are isolated from request handling
+Retry logic for failed emails
 
----
+Partial failures tracked per recipient
 
-## Why This Design
+Scalable architecture: Worker service can be scaled horizontally
 
-This architecture mirrors **real-world backend systems** used for:
+Production Readiness Notes
 
-* Email delivery platforms
-* Notification systems
-* Payment processing pipelines
-* Background job execution frameworks
+Stateless API service
 
-It prioritizes **system stability, throughput, and maintainability** over synchronous simplicity.
+Asynchronous message-driven execution
 
----
+Idempotent worker processing
 
-## Future Enhancements
+Dockerized for deployment
 
-* Dead Letter Queues (DLQ)
-* Rate limiting per recipient
-* Observability (Prometheus + Grafana)
-* Distributed tracing
-* Support for multiple email providers
+Future Enhancements
 
----
+Dead Letter Queue (DLQ)
 
-## Author
+Rate limiting per user
 
-Built as a backend-focused, production-oriented project demonstrating real-world system design and microservice communication patterns.
+Timezone support
 
----
+Email templates
 
-## License
-
+Admin dashboard for monitoring
 MIT License
