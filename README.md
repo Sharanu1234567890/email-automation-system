@@ -1,4 +1,4 @@
-# Email Scheduling System (Production‑Grade)
+# Email Scheduling System 
 
 ## Overview
 
