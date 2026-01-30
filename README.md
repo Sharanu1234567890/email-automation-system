@@ -1,180 +1,139 @@
-##Email Scheduler System
-```
-Client
-  │
-  ▼
-API Service (Spring Boot)
-  │  ── Publish Message
-  ▼
-RabbitMQ (Queue)
-  │  ── Consume Message
-  ▼
-Worker Service (Spring Boot)
-  │
-  ├─ SMTP (Email Delivery)
-  ├─ MySQL (Persistent State)
-  └─ Redis (Optional caching / idempotency)
-```
+#  Apache Kafka – Producer & Consumer Demo
 
-```
-## Tech Stack
+This project demonstrates how **Apache Kafka stores data** in a topic and allows a **consumer to start later** and still read previously produced messages.
 
-| Layer            | Technology                |
-| ---------------- | ------------------------- |
-| Language         | Java 17                   |
-| Framework        | Spring Boot               |
-| Messaging        | RabbitMQ                  |
-| Database         | MySQL 8                   |
-| Cache            | Redis                     |
-| Email            | SMTP (Gmail App Password) |
-| Containerization | Docker & Docker Compose   |
+It clearly shows Kafka’s **durability, offset management, and decoupled architecture**.
 
 ---
 
+##  What This Project Shows
+
+* Producer sends messages to Kafka
+* Kafka **stores messages in a topic**
+* Consumer can be started **later**
+* Consumer reads **old + new messages**
+* No message loss 
+
+---
+
+## Tech Stack
+
+* Java 17
+* Apache Kafka
+* Zookeeper
+* Docker & Docker Compose
+
+---
+
+##  Project Architecture
+
 ```
-Overview
-
-Email Scheduler System is a distributed backend system that allows users to schedule emails for a future time and ensures that the emails are sent automatically at the scheduled time.
-
-The system is built using Spring Boot microservices, RabbitMQ for asynchronous processing, and MySQL for persistent storage.
-
-High-Level Architecture
-flowchart LR
-    Client[Client / Frontend]
-    API[API Service]
-    DB[(MySQL)]
-    MQ[RabbitMQ]
-    Worker[Worker Service]
-    SMTP[SMTP Server]
-
-    Client -->|REST API| API
-    API -->|Persist Job| DB
-    API -->|Publish Job ID| MQ
-    MQ -->|Consume Job| Worker
-    Worker -->|Fetch Job| DB
-    Worker -->|Send Email| SMTP
-    Worker -->|Update Status| DB
-
-
-Diagram renders directly on GitHub.
-
-Clear separation of responsibilities.
-
-Designed for horizontal scaling.
-
-Services
-## API Service
-
-Responsibilities:
-
-Accept email scheduling requests via REST API
-
-Validate payloads
-
-Persist jobs and recipients in MySQL
-
-Publish job ID to RabbitMQ
-
-Does NOT:
-
-Send emails
-
-Perform heavy processing
-
-Worker Service
-
-Responsibilities:
-
-Consume scheduled jobs from RabbitMQ
-
-Send emails using SMTP
-
-Retry on failure (up to 3 times)
-
-Update job and recipient status in MySQL
-
-Data Model
-EmailJob
-Field	Description
-id	Job identifier
-userId	User who scheduled the job
-subject	Email subject
-body	Email body
-scheduledAt	Scheduled execution time
-status	PENDING / SENT / PARTIAL_FAILED
-EmailRecipient
-Field	Description
-id	Recipient identifier
-jobId	Parent job
-recipientEmail	Recipient email address
-status	PENDING / SENT / FAILED
-retryCount	Retry attempts
-Message Flow
-
-Client schedules an email via REST API.
-
-API Service:
-
-Persists job in MySQL
-
-Publishes job ID to RabbitMQ
-
-## Worker Service:
-
-Consumes job
-
-Sends email at scheduled time
-
-Updates delivery status in MySQL
-
-Technology Stack
-Layer	Technology
-Language	Java 17
-Framework	Spring Boot 3.x
-Messaging	RabbitMQ
-Database	MySQL 8
-Cache	Redis
-Email	SMTP (Gmail App Password)
-Containerization	Docker, Docker Compose
-Running Locally
-docker compose up --build
-
-Exposed Services
-Service	URL
-API Service	http://localhost:8080
-
-RabbitMQ UI	http://localhost:15672
-
-MySQL	localhost:3307
-Reliability Features
-
-Email jobs persisted before execution
-
-Retry logic for failed emails
-
-Partial failures tracked per recipient
-
-Scalable architecture: Worker service can be scaled horizontally
-
-Production Readiness Notes
-
-Stateless API service
-
-Asynchronous message-driven execution
-
-Idempotent worker processing
-
-Dockerized for deployment
+Producer  --->  Kafka Topic  --->  Consumer
+                    |
+               Stored Messages
 ```
-## Future Enhancements
 
-Dead Letter Queue (DLQ)
+Kafka retains messages even if consumers are offline.
 
-Rate limiting per user
+---
 
-Timezone support
+##  How It Works
 
-Email templates
+1. **Producer starts**
 
-Admin dashboard for monitoring
-MIT License
+   * Sends messages to a Kafka topic
+2. **Kafka stores messages**
+
+   * Messages are persisted on disk
+3. **Consumer starts later**
+
+   * Reads messages from the beginning (based on offset)
+
+---
+
+## 🐳 Run Using Docker
+
+### 1️ Start Kafka & Zookeeper
+
+```bash
+docker-compose up -d
+```
+
+---
+
+### 2️ Run Producer
+
+```bash
+java ProducerApp
+```
+
+Example Output:
+
+```
+Sent: Hello Kafka
+Sent: Message 1
+Sent: Message 2
+```
+
+---
+
+### 3️ Start Consumer (Later)
+
+```bash
+java ConsumerApp
+```
+
+Example Output:
+
+```
+Received: Hello Kafka
+Received: Message 1
+Received: Message 2
+```
+
+Even though the consumer started later, **all messages were received**.
+
+---
+
+## ⚙️ Key Kafka Configuration
+
+```properties
+auto.offset.reset=earliest
+enable.auto.commit=true
+```
+
+This allows the consumer to read messages from the start of the topic.
+
+---
+
+##  Why Kafka
+
+* Producers and consumers are **fully decoupled**
+* Messages are **durable and persistent**
+* Consumers can **replay data anytime**
+* Built for **high-throughput systems**
+
+---
+
+##  Common Use Cases
+
+* Event-driven architectures
+* Microservices communication
+* Log processing
+* Real-time data pipelines
+
+---
+
+##  Tested Environment
+
+* Java 17
+* Apache Kafka 3.x
+* Docker
+
+---
+
+## 📎 Author
+
+**Sharanu**
+AI & ML Engineering Student
+Java | Kafka | Backend Systems
